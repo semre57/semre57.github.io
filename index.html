@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blockchain Tabanlı Seçim - Türkiye 2025</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts - Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        /* Progress bar animasyonu */
+        .progress-animate {
+            animation: progressGrow 1.5s ease-out forwards;
+        }
+        
+        @keyframes progressGrow {
+            from { width: 0%; }
+        }
+        
+        /* Kesikli çizgi animasyonu */
+        .dashed-line {
+            background-image: linear-gradient(to bottom, white 50%, transparent 50%);
+            background-size: 4px 12px;
+        }
+
+        /* Aday kartı seçim animasyonu */
+        .candidate-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .candidate-card:hover {
+            transform: scale(1.05);
+        }
+
+        .candidate-card.selected {
+            transform: scale(1.05);
+        }
+
+        .candidate-card.selected.blue-candidate {
+            box-shadow: 0 0 0 4px #3b82f6, 0 0 20px rgba(59, 130, 246, 0.5);
+        }
+
+        .candidate-card.selected.red-candidate {
+            box-shadow: 0 0 0 4px #ef4444, 0 0 20px rgba(239, 68, 68, 0.5);
+        }
+
+        /* Panel geçiş animasyonu */
+        .panel-transition {
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+
+        .panel-hidden {
+            opacity: 0;
+            transform: translateY(20px);
+            pointer-events: none;
+            position: absolute;
+            visibility: hidden;
+        }
+
+        .panel-visible {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+            visibility: visible;
+        }
+
+        /* Glassmorphism efekti */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-gray-50 font-inter">
+
+    <script>
+        // ============================================
+        // DİNAMİK VERİ YAPISI
+        // Bu değerleri değiştirerek tüm arayüz
+        // otomatik olarak güncellenecektir
+        // ============================================
+        const electionData = {
+            election: {
+                title: "BAŞKANLIK SEÇİMİ GENEL SONUÇ",
+                year: 2025,
+                country: "TÜRKİYE",
+                subtitle: "BLOKCHAIN TABANLI SEÇİM"
+            },
+            candidates: {
+                left: {
+                    name: "John Doe",
+                    party: "Yenilikçiler",
+                    votes: 300000,
+                    color: "blue"
+                },
+                right: {
+                    name: "Ken Thompson",
+                    party: "Gelenekçiler",
+                    votes: 245181,
+                    color: "red"
+                }
+            }
+        };
+
+        // Hesaplamalar
+        const totalVotes = electionData.candidates.left.votes + electionData.candidates.right.votes;
+        const leftPercentage = ((electionData.candidates.left.votes / totalVotes) * 100).toFixed(1);
+        const rightPercentage = ((electionData.candidates.right.votes / totalVotes) * 100).toFixed(1);
+
+        // Oy sayısını formatlama
+        function formatVotes(votes) {
+            return votes.toLocaleString('tr-TR');
+        }
+
+        // Seçili aday (voting panel için)
+        let selectedCandidate = null;
+    </script>
+
+    <!-- ============================================
+         NAVBAR - Mavi/Kırmızı Split + TÜRKİYE 2025 Butonu
+         ============================================ -->
+     <nav class="relative h-16 flex">
+        <!-- Sol Mavi Bölüm -->
+        <div class="flex-1 bg-blue-600"></div>
+        
+        <!-- Sağ Kırmızı Bölüm -->
+        <div class="flex-1 bg-red-600"></div>
+
+        <!-- Saat & Tarih (absolute, kaydırmaz) -->
+        <div id="dateTime"
+             class="absolute top-5 right-0 transform -translate-x-1/4
+                    text-xs md:text-sm font-medium text-white tracking-wide">
+        </div>
+
+        <!-- Orta Buton -->
+        <div class="absolute inset-0 flex items-center justify-center">
+            <button 
+                id="navbarButton"
+                onclick="togglePanel()"
+                class="bg-black text-white px-10 py-3 rounded-full font-bold text-lg tracking-wider flex items-center gap-2 hover:bg-gray-800 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105">
+                <i data-lucide="vote" class="w-5 h-5"></i>
+                <span id="navbarButtonText">VOTE</span>
+            </button>
+        </div>
+    </nav>
+    
+    <!-- ============================================
+         DASHBOARD PANELİ (Görsel 1 - Sonuç Ekranı)
+         ============================================ -->
+    <div id="dashboardPanel" class="panel-transition panel-visible flex-1">
+        <main class="container mx-auto px-4 py-8 relative">
+            
+            <!-- ARKA PLAN LOGO ALANI -->
+            <div 
+                id="backgroundLogo"
+                class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10 z-0"
+                style="
+                    background-image: url('public/election-logo-2.png'); 
+                    background-size: contain; 
+                    background-repeat: no-repeat; 
+                    background-position: center; 
+                "
+            >
+            </div>
+
+            <!-- İçerik Z-Index ile üstte -->
+            <div class="relative z-10">
+                
+                <!-- BAŞLIK -->
+                <h1 id="electionTitle" class="text-3xl md:text-4xl font-black text-center text-gray-900 mb-12 tracking-tight">
+                    BAŞKANLIK SEÇİMİ GENEL SONUÇ
+                </h1>
+
+                <!-- ADAY KARTLARI -->
+                <div class="flex flex-col lg:flex-row items-center justify-between gap-8 lg:gap-4 mb-8 max-w-5xl mx-auto">
+                    
+                    <!-- SOL ADAY KARTI (Yenilikçiler - Mavi) -->
+                    <div class="flex flex-col sm:flex-row items-center gap-4">
+                        <div class="w-24 h-24 md:w-28 md:h-28 rounded-full bg-blue-500 flex items-center justify-center shadow-lg border-4 border-blue-300">
+                            <img 
+                                src="public/yenilikciler-logo.png"
+                                alt="Yenilikçiler Partisi"
+                                class="w-full h-full object-contain p-2"
+                            />
+                        </div>
+                        
+                        <div class="text-center sm:text-left">
+                            <h2 class="flex items-center gap-2 text-xl md:text-2xl font-bold text-gray-900">
+                                <span id="leftCandidateName">John Doe</span>
+
+                                <!-- Kazanan Tik (Sol) -->
+                                <span id="leftWinnerBadge"
+                                      class="hidden w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                         class="w-4 h-4 text-white"
+                                         viewBox="0 0 24 24"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         stroke-width="3"
+                                         stroke-linecap="round"
+                                         stroke-linejoin="round">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                </span>
+                            </h2>
+
+                            <p id="leftPartyName" class="text-lg font-semibold text-blue-600">Yenilikçiler</p>
+                            <p id="leftVotes" class="text-gray-600 font-medium">145.234 votes</p>
+                        </div>
+                    </div>
+
+                    <!-- SAĞ ADAY KARTI (Gelenekçiler - Kırmızı) -->
+                    <div class="flex flex-col sm:flex-row-reverse items-center gap-4">
+                        <div class="w-24 h-24 md:w-28 md:h-28 rounded-full bg-red-500 flex items-center justify-center shadow-lg border-4 border-red-300">
+                            <img 
+                                src="public/gelenekciler-logo.png"
+                                alt="Gelenekçiler Partisi"
+                                class="w-full h-full object-contain p-2"
+                            />
+                        </div>
+                        
+                        <div class="text-center sm:text-right">
+                            <h2 class="flex items-center gap-2 justify-end text-xl md:text-2xl font-bold text-gray-900">
+                                <!-- Kazanan Tik (Sağ) -->
+                                <span id="rightWinnerBadge"
+                                      class="hidden w-6 h-6 rounded-full bg-red-600 flex items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                         class="w-4 h-4 text-white"
+                                         viewBox="0 0 24 24"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         stroke-width="3"
+                                         stroke-linecap="round"
+                                         stroke-linejoin="round">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                </span>
+
+                                <span id="rightCandidateName">Ken Thompson</span>
+                            </h2>
+
+                            <p id="rightPartyName" class="text-lg font-semibold text-red-600">Gelenekçiler</p>
+                            <p id="rightVotes" class="text-gray-600 font-medium">245.181 votes</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- İLERLEME ÇUBUĞU (PROGRESS BAR) -->
+                <div class="max-w-5xl mx-auto mb-12">
+                    <!-- 50% + 1 to win İşaretçisi -->
+                    <div class="relative mb-2">
+                        <div class="absolute left-1/2 transform -translate-x-1/2 -top-8 flex flex-col items-center z-20">
+                            <span class="bg-gray-800 text-white text-xs md:text-sm px-3 py-1 rounded-full font-semibold whitespace-nowrap shadow-lg">
+                                50% + 1 to win
+                            </span>
+                            <div class="w-0 h-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent border-t-gray-800"></div>
+                        </div>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="relative h-14 md:h-16 rounded-lg overflow-hidden shadow-lg border-2 border-gray-300 mt-8 bg-gray-200">
+                        <!-- Mavi Taraf (Sol Aday) -->
+                        <div 
+                            id="leftProgressBar"
+                            class="absolute left-0 top-0 h-full bg-gradient-to-r from-blue-700 to-blue-500 flex items-center justify-start pl-4 progress-animate"
+                            style="width: 37.2%;">
+                            <span id="leftPercentage" class="text-white font-black text-xl md:text-2xl drop-shadow-lg">37.2%</span>
+                        </div>
+                        
+                        <!-- Kırmızı Taraf (Sağ Aday) -->
+                        <div 
+                            id="rightProgressBar"
+                            class="absolute right-0 top-0 h-full bg-gradient-to-l from-red-700 to-red-500 flex items-center justify-end pr-4 progress-animate"
+                            style="width: 62.8%;">
+                            <span id="rightPercentageBar" class="text-white font-black text-xl md:text-2xl drop-shadow-lg">62.8%</span>
+                        </div>
+
+                        <!-- Orta Kesikli Çizgi (50% İşareti) -->
+                        <div class="absolute left-1/2 top-0 h-full w-1 transform -translate-x-1/2 z-10 dashed-line opacity-80"></div>
+                    </div>
+
+                    <!-- Toplam Oy Bilgisi -->
+                    <div class="flex justify-center mt-4">
+                        <div class="flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-full border border-gray-200">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                                <circle cx="9" cy="7" r="4"/>
+                                <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                            </svg>
+                            <span id="totalVotes" class="text-gray-700 font-semibold">Toplam Oy: 390.415</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ALT LOGO VE BAŞLIK ALANI -->
+                <div class="text-center mt-16">
+                    <h2 id="electionSubtitle" class="text-2xl md:text-3xl font-black tracking-widest text-gray-400">
+                        BLOKCHAIN TABANLI SEÇİM
+                    </h2>
+                    <p id="electionInfo" class="text-lg font-bold tracking-[0.3em] text-gray-300">
+                        TÜRKİYE 2025
+                    </p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ============================================
+         VOTING PANELİ (Görsel 2 - Oy Verme Ekranı)
+         ============================================ -->
+    <div id="votingPanel" class="panel-transition panel-hidden flex-1 bg-white-400">
+        <main class="relative w-full min-h-screen flex items-center justify-center overflow-hidden">
+
+            
+                        
+            <div 
+                id="backgroundLogo"
+                class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10 z-0"
+                style="
+                    background-image: url('public/election-logo-2.png'); 
+                    background-size: contain; 
+                    background-repeat: no-repeat; 
+                    background-position: left; 
+                "
+            >
+            </div>
+
+            <div 
+                id="backgroundLogo"
+                class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10 z-0"
+                style="
+                    background-image: url('public/election-logo-2.png'); 
+                    background-size: contain; 
+                    background-repeat: no-repeat; 
+                    background-position: right; 
+                "
+            >
+            </div>
+
+            <!-- Voting Card -->
+            <div class="relative z-10 w-full max-w-md">
+                <div class="glass-card rounded-3xl shadow-2xl p-8 border border-gray-200">
+                  
+                  <div class="flex justify-center -mt-6 mb-4">  
+                    <div class="w-28 h-28 md:w-32 md:h-32 rounded-full bg-white flex items-center justify-center shadow-lg border-4 border-gray-200 overflow-hidden">
+
+                            <img 
+                                src="public/election-logo-2.png"
+                                class="w-full h-full object-contain p-2"
+                            />
+                        </div>
+                  </div>
+
+                    <!-- Giriş Alanları -->
+                    <div class="space-y-4 mb-11">
+
+                        <!-- Citizenship Number -->
+                        <div class="flex items-center gap-4">
+                            
+                            <input 
+                                type="text"
+                                id="citizenshipNumber"
+                                maxlength="11"
+                                inputmode="numeric"
+                                oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                                class="flex-1 bg-gray-200 text-black px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                                placeholder="Citizenship Number"
+                            />
+                        </div>
+                        
+                    </div>
+
+                    <!-- Aday Seçim Kartları -->
+                    <div class="flex justify-center gap-6 mb-8">
+                        <!-- Sol Aday (Yenilikçiler) -->
+                        <div 
+                            id="voteCardLeft"
+                            onclick="selectCandidate('left')"
+                            class="candidate-card blue-candidate bg-gray-200 rounded-2xl p-4 flex flex-col items-center w-40 border-2 border-transparent hover:border-blue-300"
+                        >
+                            <div class="w-20 h-20 rounded-full bg-blue-500 flex items-center justify-center shadow-lg mb-3">
+                                <img 
+                                    src="public/yenilikciler-logo.png"
+                                    alt="Yenilikçiler"
+                                    class="w-full h-full object-contain p-1"
+                                    onerror="this.style.display='none'; this.parentElement.innerHTML='<svg xmlns=\'http://www.w3.org/2000/svg\' class=\'w-10 h-10 text-black\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'1.5\'><path d=\'M12 5c.67 0 1.35.09 2 .26 1.78-2 5.03-2.84 6.42-2.26 1.4.58-.42 7-.42 7 .57 1.07 1 2.24 1 3.44C21 17.9 16.97 21 12 21s-9-3.1-9-7.56c0-1.25.5-2.4 1-3.44 0 0-1.89-6.42-.5-7 1.39-.58 4.72.23 6.5 2.23A9.04 9.04 0 0 1 12 5Z\'/></svg>'"
+                                />
+                            </div>
+                            <h3 id="voteLeftName" class="font-bold text-gray-900 text-center">John Doe</h3>
+                            <p id="voteLeftParty" class="text-blue-600 font-semibold text-sm">Yenilikçiler</p>
+                            <!-- Seçim İşareti -->
+                            <div id="checkLeft" class="hidden mt-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                            </div>
+                        </div>
+
+                        <!-- Sağ Aday (Gelenekçiler) -->
+                        <div 
+                            id="voteCardRight"
+                            onclick="selectCandidate('right')"
+                            class="candidate-card red-candidate bg-gray-200 rounded-2xl p-4 flex flex-col items-center w-40 border-2 border-transparent hover:border-red-300"
+                        >
+                            <div class="w-20 h-20 rounded-full bg-red-500 flex items-center justify-center shadow-lg mb-3">
+                                <img 
+                                    src="public/gelenekciler-logo.png"
+                                    alt="Gelenekçiler"
+                                    class="w-full h-full object-contain p-1"
+                                    onerror="this.style.display='none'; this.parentElement.innerHTML='<svg xmlns=\'http://www.w3.org/2000/svg\' class=\'w-10 h-10 text-black\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'1.5\'><path d=\'M10 5.172C10 3.782 8.423 2.679 6.5 3c-2.823.47-4.113 6.006-4 7 .08.703 1.725 1.722 3.656 1 1.261-.472 1.96-1.45 2.344-2.5\'/><path d=\'M14.267 5.172c0-1.39 1.577-2.493 3.5-2.172 2.823.47 4.113 6.006 4 7-.08.703-1.725 1.722-3.656 1-1.261-.472-1.855-1.45-2.239-2.5\'/></svg>'"
+                                />
+                            </div>
+                            <h3 id="voteRightName" class="font-bold text-gray-900 text-center">Ken Thompson</h3>
+                            <p id="voteRightParty" class="text-red-600 font-semibold text-sm">Gelenekçiler</p>
+                            <!-- Seçim İşareti -->
+                            <div id="checkRight" class="hidden mt-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-red-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- VOTE Butonu -->
+                    <button 
+                        id="submitVoteBtn"
+                        onclick="submitVote()"
+                        class="w-full bg-black text-white py-4 rounded-full font-bold text-xl tracking-wider hover:bg-black-800 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                        disabled
+                    >
+                        VOTE
+                    </button>
+
+                    <!-- Hata/Bilgi Mesajı -->
+                    <p id="voteMessage" class="text-center mt-4 text-sm font-medium hidden"></p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ============================================
+         FOOTER
+         ============================================ -->
+    <footer class="mt-auto py-6 bg-gray-100 border-t border-gray-200">
+        <div class="container mx-auto px-4 text-center">
+            <p class="text-gray-500 text-sm">
+                © 2025 Blockchain Seçim Sistemi - Tüm hakları saklıdır.
+            </p>
+        </div>
+    </footer>
+
+    <!-- ============================================
+         DİNAMİK VERİ GÜNCELLEME VE OY VERME SCRIPTİ
+         ============================================ -->
+    <script>
+        // Mevcut panel durumu
+        let currentPanel = 'dashboard'; // 'dashboard' veya 'voting'
+
+        // Sayfa yüklendiğinde verileri güncelle
+        document.addEventListener('DOMContentLoaded', function() {
+            updateElectionData();
+            updateVotingPanel();
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        });
+
+        // Dashboard verilerini güncelle
+        function updateElectionData() {
+            const { election, candidates } = electionData;
+            
+            // Hesaplamalar
+            const total = candidates.left.votes + candidates.right.votes;
+            const leftPct = ((candidates.left.votes / total) * 100).toFixed(1);
+            const rightPct = ((candidates.right.votes / total) * 100).toFixed(1);
+
+            // Başlıkları güncelle
+            document.getElementById('electionTitle').textContent = election.title;
+            document.getElementById('electionSubtitle').textContent = election.subtitle;
+            document.getElementById('electionInfo').textContent = `${election.country} ${election.year}`;
+
+            // Sol aday bilgilerini güncelle
+            document.getElementById('leftCandidateName').textContent = candidates.left.name;
+            document.getElementById('leftPartyName').textContent = candidates.left.party;
+            document.getElementById('leftVotes').textContent = `${formatVotes(candidates.left.votes)} votes`;
+
+            // Sağ aday bilgilerini güncelle
+            document.getElementById('rightCandidateName').textContent = candidates.right.name;
+            document.getElementById('rightPartyName').textContent = candidates.right.party;
+            document.getElementById('rightVotes').textContent = `${formatVotes(candidates.right.votes)} votes`;
+
+            // Progress bar güncelle
+            document.getElementById('leftProgressBar').style.width = `${leftPct}%`;
+            document.getElementById('rightProgressBar').style.width = `${rightPct}%`;
+            document.getElementById('leftPercentage').textContent = `${leftPct}%`;
+            document.getElementById('rightPercentageBar').textContent = `${rightPct}%`;
+
+            // Toplam oy güncelle
+            document.getElementById('totalVotes').textContent = `Toplam Oy: ${formatVotes(total)}`;
+
+            // Kazanan aday tikini belirle
+            const leftBadge = document.getElementById('leftWinnerBadge');
+            const rightBadge = document.getElementById('rightWinnerBadge');
+
+            // Önce ikisini de gizle
+            leftBadge.classList.add('hidden');
+            rightBadge.classList.add('hidden');
+
+            // Karşılaştır
+            if (candidates.left.votes > candidates.right.votes) {
+                leftBadge.classList.remove('hidden');
+            } else if (candidates.right.votes > candidates.left.votes) {
+                rightBadge.classList.remove('hidden');
+            }
+            // Eşitse hiçbiri görünmez
+
+        }
+
+        // Voting panel verilerini güncelle
+        function updateVotingPanel() {
+            const { candidates } = electionData;
+            
+            document.getElementById('voteLeftName').textContent = candidates.left.name;
+            document.getElementById('voteLeftParty').textContent = candidates.left.party;
+            document.getElementById('voteRightName').textContent = candidates.right.name;
+            document.getElementById('voteRightParty').textContent = candidates.right.party;
+        }
+
+        // Panel geçişi
+        function togglePanel() {
+            const dashboard = document.getElementById('dashboardPanel');
+            const voting = document.getElementById('votingPanel');
+            const navBtn = document.getElementById('navbarButtonText');
+
+            if (currentPanel === 'dashboard') {
+                // Voting panel'e geç
+                dashboard.classList.remove('panel-visible');
+                dashboard.classList.add('panel-hidden');
+                voting.classList.remove('panel-hidden');
+                voting.classList.add('panel-visible');
+                navBtn.textContent = 'TÜRKİYE 2025';
+                currentPanel = 'voting';
+                
+                // Formu sıfırla
+                resetVotingForm();
+            } else {
+                // Dashboard'a geç
+                voting.classList.remove('panel-visible');
+                voting.classList.add('panel-hidden');
+                dashboard.classList.remove('panel-hidden');
+                dashboard.classList.add('panel-visible');
+                navBtn.textContent = 'VOTE';
+                currentPanel = 'dashboard';
+            }
+        }
+
+        // Aday seçimi
+        function selectCandidate(candidate) {
+            const leftCard = document.getElementById('voteCardLeft');
+            const rightCard = document.getElementById('voteCardRight');
+            const checkLeft = document.getElementById('checkLeft');
+            const checkRight = document.getElementById('checkRight');
+            const submitBtn = document.getElementById('submitVoteBtn');
+
+            // Önceki seçimi temizle
+            leftCard.classList.remove('selected');
+            rightCard.classList.remove('selected');
+            checkLeft.classList.add('hidden');
+            checkRight.classList.add('hidden');
+
+            // Yeni seçimi işaretle
+            if (candidate === 'left') {
+                leftCard.classList.add('selected');
+                checkLeft.classList.remove('hidden');
+                selectedCandidate = 'left';
+            } else {
+                rightCard.classList.add('selected');
+                checkRight.classList.remove('hidden');
+                selectedCandidate = 'right';
+            }
+
+            // VOTE butonunu aktif et
+            submitBtn.disabled = false;
+            
+            // Mesajı gizle
+            hideMessage();
+        }
+
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = (hash << 5) - hash + str.charCodeAt(i);
+                hash |= 0;
+            }
+            return hash.toString();
+        }
+
+        function getBlockchain() {
+            const chain = localStorage.getItem('voteChain');
+            return chain ? JSON.parse(chain) : [];
+        }
+
+        function saveBlockchain(chain) {
+            localStorage.setItem('voteChain', JSON.stringify(chain));
+        }
+
+
+
+
+        // Oy verme işlemi
+        async function submitVote() {
+            const citizenshipInput = document.getElementById('citizenshipNumber');
+            const citizenship = citizenshipInput.value.trim();
+
+            // Boş kontrol
+            if (!citizenship) {
+                showMessage('Lütfen Kimlik Numaranızı giriniz!', 'error');
+                return;
+            }
+
+            // TC doğrulama
+            if (!isValidTC(citizenship)) {
+                showMessage('Geçersiz T.C. Kimlik Numarası!', 'error');
+                citizenshipInput.classList.add('border-2', 'border-red-500');
+                return;
+            } else {
+                citizenshipInput.classList.remove('border-2', 'border-red-500');
+            }
+
+            // Aday seçimi kontrolü
+            if (!selectedCandidate) {
+                showMessage('Lütfen bir aday seçin!', 'error');
+                return;
+            }
+
+            // BLOCKCHAIN KAYDI 
+            try {
+                await addVoteBlock(citizenship, selectedCandidate);
+            } catch (err) {
+                showMessage('Blockchain kaydı başarısız!', 'error');
+                return;
+            }
+
+            // Oyu ekle (UI için)
+            if (selectedCandidate === 'left') {
+                electionData.candidates.left.votes += 1;
+            } else {
+                electionData.candidates.right.votes += 1;
+            }
+
+            showMessage(
+                'Oyunuz başarıyla blockchain\'e kaydedildi!',
+                'success'
+            );
+
+            updateElectionData();
+
+            setTimeout(() => {
+                togglePanel();
+            }, 1500);
+        }
+
+
+
+        // Voting formunu sıfırla
+        function resetVotingForm() {
+            document.getElementById('citizenshipNumber').value = '';
+            document.getElementById('password').value = '';
+            
+            const leftCard = document.getElementById('voteCardLeft');
+            const rightCard = document.getElementById('voteCardRight');
+            const checkLeft = document.getElementById('checkLeft');
+            const checkRight = document.getElementById('checkRight');
+            const submitBtn = document.getElementById('submitVoteBtn');
+
+            leftCard.classList.remove('selected');
+            rightCard.classList.remove('selected');
+            checkLeft.classList.add('hidden');
+            checkRight.classList.add('hidden');
+            submitBtn.disabled = true;
+            selectedCandidate = null;
+            
+            hideMessage();
+        }
+
+        // Mesaj göster
+        function showMessage(text, type) {
+            const msg = document.getElementById('voteMessage');
+            msg.textContent = text;
+            msg.classList.remove('hidden', 'text-red-600', 'text-green-600');
+            msg.classList.add(type === 'error' ? 'text-red-600' : 'text-green-600');
+        }
+
+        // Mesajı gizle
+        function hideMessage() {
+            const msg = document.getElementById('voteMessage');
+            msg.classList.add('hidden');
+        }
+
+        // Verileri dışarıdan güncellemek için fonksiyon
+        function setElectionData(newData) {
+            Object.assign(electionData, newData);
+            updateElectionData();
+            updateVotingPanel();
+        }
+
+        function updateDateTime() {
+            const now = new Date();
+
+            const options = {
+                weekday: 'long',
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric'
+            };
+
+            const date = now.toLocaleDateString('tr-TR', options);
+            const time = now.toLocaleTimeString('tr-TR', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+
+            document.getElementById('dateTime').textContent = `${date} • ${time}`;
+        }
+
+        // ===============================
+        // T.C. Kimlik Doğrulama
+        // ===============================
+        function isValidTC(tc) {
+            if (!/^[1-9][0-9]{10}$/.test(tc)) return false;
+
+            const digits = tc.split('').map(Number);
+
+            const sumOdd = digits[0] + digits[2] + digits[4] + digits[6] + digits[8];
+            const sumEven = digits[1] + digits[3] + digits[5] + digits[7];
+
+            const digit10 = ((sumOdd * 7) - sumEven) % 10;
+            const digit11 = digits.slice(0, 10).reduce((a, b) => a + b, 0) % 10;
+
+            return digit10 === digits[9] && digit11 === digits[10];
+        }
+
+        async function sha256(message) {
+            const msgBuffer = new TextEncoder().encode(message);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        let blockchain = [];
+
+        async function createGenesisBlock() {
+            const block = {
+                index: 0,
+                timestamp: new Date().toISOString(),
+                data: "Genesis Block",
+                previousHash: "0",
+                hash: "GENESIS"
+            };
+            blockchain.push(block);
+        }
+
+        createGenesisBlock();
+
+        async function addVoteBlock(tc, candidate) {
+            const chain = getBlockchain();
+
+            const previousBlock = chain[chain.length - 1];
+            const previousHash = previousBlock ? previousBlock.hash : 'GENESIS';
+
+            const tcHash = simpleHash(tc);
+
+            // Aynı TC ikinci kez oy vermesin
+            const alreadyVoted = chain.some(
+                block => block.tcHash === tcHash
+            );
+
+            if (alreadyVoted) {
+                throw new Error('Bu T.C. Kimlik Numarası ile daha önce oy kullanılmış.');
+            }
+
+            const blockData = {
+                index: chain.length,
+                timestamp: new Date().toISOString(),
+                tcHash,
+                candidate,
+                previousHash
+            };
+
+            blockData.hash = simpleHash(
+                JSON.stringify(blockData)
+            );
+
+            chain.push(blockData);
+            saveBlockchain(chain);
+
+            // Simülasyon gecikmesi
+            return new Promise(resolve => setTimeout(resolve, 500));
+        }
+
+
+        async function isBlockchainValid() {
+            for (let i = 1; i < blockchain.length; i++) {
+                const current = blockchain[i];
+                const previous = blockchain[i - 1];
+
+                const recalculatedHash = await sha256(JSON.stringify({
+                    index: current.index,
+                    timestamp: current.timestamp,
+                    tcHash: current.tcHash,
+                    candidate: current.candidate,
+                    previousHash: current.previousHash
+                }));
+
+                if (current.hash !== recalculatedHash) return false;
+                if (current.previousHash !== previous.hash) return false;
+            }
+            return true;
+        }
+
+
+        // İlk yüklemede çalıştır
+        updateDateTime();
+
+        // Her saniye güncelle
+        setInterval(updateDateTime, 1000);
+
+    </script>
+
+</body>
+</html>
